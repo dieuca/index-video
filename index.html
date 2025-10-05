@@ -47,43 +47,53 @@
   <h1>🎵 Kênh YouTube @DieuCa</h1>
   <div id="videoGrid"></div>
 
-  <script>
-    const apiKey = "AIzaSyCzpgWmB3yQXRsISW4RLUTqJCDTzW5rbbs";
-    const channelHandle = "@DieuCa";
-    const maxResults = 40;
+ <script>
+  const apiKey = "AIzaSyCzpgWmB3yQXRsISW4RLUTqJCDTzW5rbbs";
+  const channelHandle = "@DieuCa";
+  const maxResults = 50;
 
-    async function getChannelId() {
-      const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=id&type=channel&q=${channelHandle}&key=${apiKey}`);
+  async function getChannelId() {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=id&type=channel&q=${channelHandle}&key=${apiKey}`);
+    const data = await res.json();
+    return data.items[0]?.id?.channelId;
+  }
+
+  async function getAllVideos(channelId) {
+    let videos = [];
+    let nextPageToken = "";
+    do {
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${maxResults}&pageToken=${nextPageToken}`
+      );
       const data = await res.json();
-      return data.items[0]?.id?.channelId;
-    }
+      videos = videos.concat(data.items);
+      nextPageToken = data.nextPageToken || "";
+    } while (nextPageToken);
+    return videos;
+  }
 
-    async function getVideos(channelId) {
-      const res = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${maxResults}`);
-      const data = await res.json();
-      return data.items;
+  async function init() {
+    try {
+      const channelId = await getChannelId();
+      const videos = await getAllVideos(channelId);
+      const container = document.getElementById("videoGrid");
+      container.innerHTML = videos
+        .filter(v => v.id.videoId)
+        .map(v => `
+          <div class="video-item">
+            <iframe src="https://www.youtube.com/embed/${v.id.videoId}" allowfullscreen></iframe>
+            <div class="title">${v.snippet.title}</div>
+          </div>
+        `)
+        .join("");
+    } catch (err) {
+      document.body.innerHTML += `<p style="color:red;text-align:center">Lỗi tải video: ${err.message}</p>`;
     }
+  }
 
-    async function init() {
-      try {
-        const channelId = await getChannelId();
-        const videos = await getVideos(channelId);
-        const container = document.getElementById("videoGrid");
-        container.innerHTML = videos
-          .filter(v => v.id.videoId)
-          .map(v => `
-            <div class="video-item">
-              <iframe src="https://www.youtube.com/embed/${v.id.videoId}" allowfullscreen></iframe>
-              <div class="title">${v.snippet.title}</div>
-            </div>
-          `)
-          .join("");
-      } catch (err) {
-        document.body.innerHTML += `<p style="color:red;text-align:center">Lỗi tải video: ${err.message}</p>`;
-      }
-    }
+  init();
+</script>
 
-    init();
-  </script>
 </body>
 </html>
+

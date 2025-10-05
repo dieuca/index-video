@@ -1,33 +1,89 @@
-﻿<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="vi">
 <head>
-  <meta charset="utf-8"/>
-  <title>Video Gallery</title>
-  <style>
-    body { margin:0; padding:10px; background:#fff; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Video @DieuCa</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f9f9f9;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    color: #333;
+  }
+  #videoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .video-item {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .video-item:hover {
+    transform: translateY(-5px);
+  }
+  iframe {
+    width: 100%;
+    height: 180px;
+    border: none;
+  }
+  .title {
+    padding: 10px;
+    font-size: 14px;
+    color: #333;
+  }
+</style>
 </head>
 <body>
-<div id="youtube-gallery" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;"></div>
+  <h1>🎵 Kênh YouTube @DieuCa</h1>
+  <div id="videoGrid"></div>
 
-<script>
-const apiKey = "AIzaSyCzpgWmB3yQXRsISW4RLUTqJCDTzW5rbbs";
-const channelId = "UCpGVdZhYjvVjqTd5nIfvNvw";
-const maxResults = 40;
-fetch(`https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${maxResults}`)
-  .then(r=>r.json()).then(data=>{
-    const c=document.getElementById("youtube-gallery");
-    if(!data.items){c.innerHTML="<p>Lỗi tải video.</p>";return;}
-    data.items.forEach(i=>{
-      if(i.id.videoId){
-        c.innerHTML += `
-          <div style='border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.15);background:#fff;'>
-            <iframe width='100%' height='200' src='https://www.youtube.com/embed/${i.id.videoId}' frameborder='0' allowfullscreen></iframe>
-            <div style='padding:8px;font-size:14px;font-weight:600;text-align:center;'>${i.snippet.title}</div>
-          </div>`;
+  <script>
+    const apiKey = "AIzaSyCzpgWmB3yQXRsISW4RLUTqJCDTzW5rbbs";
+    const channelHandle = "@DieuCa";
+    const maxResults = 40;
+
+    async function getChannelId() {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=id&type=channel&q=${channelHandle}&key=${apiKey}`);
+      const data = await res.json();
+      return data.items[0]?.id?.channelId;
+    }
+
+    async function getVideos(channelId) {
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=snippet,id&order=date&maxResults=${maxResults}`);
+      const data = await res.json();
+      return data.items;
+    }
+
+    async function init() {
+      try {
+        const channelId = await getChannelId();
+        const videos = await getVideos(channelId);
+        const container = document.getElementById("videoGrid");
+        container.innerHTML = videos
+          .filter(v => v.id.videoId)
+          .map(v => `
+            <div class="video-item">
+              <iframe src="https://www.youtube.com/embed/${v.id.videoId}" allowfullscreen></iframe>
+              <div class="title">${v.snippet.title}</div>
+            </div>
+          `)
+          .join("");
+      } catch (err) {
+        document.body.innerHTML += `<p style="color:red;text-align:center">Lỗi tải video: ${err.message}</p>`;
       }
-    });
-  });
-</script>
+    }
+
+    init();
+  </script>
 </body>
 </html>
